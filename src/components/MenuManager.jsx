@@ -19,6 +19,8 @@ export default function MenuManager() {
   const [settings, setSettings] = useState({
     id: 1,
     menuOpen: true,
+    cutoffHour: 11,
+    cutoffMinute: 30,
     loading: true,
     saving: false,
   });
@@ -32,7 +34,7 @@ export default function MenuManager() {
 
     if (error) {
       console.error(error);
-      setMsg({ type: "danger", text: "Error cargando menú" });
+      setMsg({ type: "danger", text: "Error cargando menu" });
       setItems([]);
     } else {
       setItems(data || []);
@@ -44,7 +46,7 @@ export default function MenuManager() {
     setSettings((prev) => ({ ...prev, loading: true }));
     const { data, error } = await supabase
       .from("app_settings")
-      .select("id, menu_open")
+      .select("id, menu_open, order_cutoff_hour, order_cutoff_minute")
       .eq("id", 1)
       .single();
 
@@ -58,6 +60,8 @@ export default function MenuManager() {
       setSettings({
         id: data.id,
         menuOpen: data.menu_open,
+        cutoffHour: data.order_cutoff_hour ?? 11,
+        cutoffMinute: data.order_cutoff_minute ?? 30,
         loading: false,
         saving: false,
       });
@@ -141,7 +145,6 @@ export default function MenuManager() {
   }
 
   async function remove(id) {
-    // Verificamos si tiene pedidos asociados
     const { data: relatedOrders, error: relError } = await supabase
       .from("orders")
       .select("id")
@@ -160,12 +163,12 @@ export default function MenuManager() {
     if (relatedOrders && relatedOrders.length > 0) {
       setMsg({
         type: "warning",
-        text: "No podés eliminar este plato porque tiene pedidos asociados. Podés desactivarlo desmarcando la opción 'Activo'.",
+        text: "No podes eliminar este plato porque tiene pedidos asociados. Podes desactivarlo desmarcando la opcion 'Activo'.",
       });
       return;
     }
 
-    if (!window.confirm("¿Eliminar este plato?")) return;
+    if (!window.confirm("Eliminar este plato?")) return;
 
     const { error } = await supabase.from("menu_items").delete().eq("id", id);
     if (error) {
@@ -211,7 +214,7 @@ export default function MenuManager() {
       console.error(error);
       setMsg({
         type: "danger",
-        text: "No se pudo actualizar el estado del menú.",
+        text: "No se pudo actualizar el estado del menu.",
       });
       setSettings((prev) => ({ ...prev, menuOpen: !newValue, saving: false }));
     } else {
@@ -219,11 +222,53 @@ export default function MenuManager() {
     }
   }
 
+  function handleCutoffChange(e) {
+    const [h, m] = e.target.value.split(":");
+    setSettings((prev) => ({
+      ...prev,
+      cutoffHour: Number(h) || 0,
+      cutoffMinute: Number(m) || 0,
+    }));
+  }
+
+  async function saveCutoff() {
+    if (!settings.id) return;
+
+    setSettings((prev) => ({ ...prev, saving: true }));
+    const payload = {
+      order_cutoff_hour: Number(settings.cutoffHour) || 0,
+      order_cutoff_minute: Number(settings.cutoffMinute) || 0,
+    };
+
+    const { error } = await supabase
+      .from("app_settings")
+      .update(payload)
+      .eq("id", settings.id);
+
+    if (error) {
+      console.error(error);
+      setMsg({
+        type: "danger",
+        text: "No se pudo guardar el horario de corte.",
+      });
+    } else {
+      setMsg({
+        type: "success",
+        text: "Horario de corte guardado.",
+      });
+    }
+    setSettings((prev) => ({ ...prev, saving: false }));
+  }
+
+  const cutoffValue = `${String(settings.cutoffHour).padStart(2, "0")}:${String(
+    settings.cutoffMinute
+  ).padStart(2, "0")}`;
+
   return (
     <div className="d-flex flex-column gap-3">
       <div className="card shadow-sm">
         <div className="card-body">
-          <h2 className="h5 mb-3">Gestión de menú</h2>
+          <h2 className="h5 mb-3">Gestion de menu</h2>
 
           {msg && (
             <div
@@ -238,7 +283,6 @@ export default function MenuManager() {
             </div>
           )}
 
-          {/* Switch global menú visible / preparación */}
           <div className="mb-3">
             <div className="form-check form-switch">
               <input
@@ -249,20 +293,42 @@ export default function MenuManager() {
                 disabled={settings.loading || settings.saving}
                 onChange={toggleMenuVisibility}
               />
-              <label
-                className="form-check-label"
-                htmlFor="menuPreparation"
-              >
-                Ocultar menú al público (modo preparación)
+              <label className="form-check-label" htmlFor="menuPreparation">
+                Ocultar menu al publico (modo preparacion)
               </label>
             </div>
             <div className="form-text">
-              Cuando esté activado, los clientes verán el mensaje{" "}
-              <strong>"Menú en preparación"</strong> y no podrán hacer pedidos.
+              Cuando esta activado, los clientes veran el mensaje "Menu en preparacion" y no podran hacer pedidos.
             </div>
           </div>
 
-          {/* FORMULARIO PLATOS */}
+          <div className="mb-4 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-end">
+            <div className="flex-grow-1">
+              <label className="form-label" htmlFor="cutoffTime">
+                Horario limite para tomar pedidos
+              </label>
+              <input
+                id="cutoffTime"
+                type="time"
+                className="form-control"
+                value={cutoffValue}
+                onChange={handleCutoffChange}
+                disabled={settings.loading || settings.saving}
+              />
+              <div className="form-text">
+                Despues de este horario el cliente ya no ve el formulario.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              disabled={settings.loading || settings.saving}
+              onClick={saveCutoff}
+            >
+              {settings.saving ? "Guardando..." : "Guardar horario"}
+            </button>
+          </div>
+
           <form className="row g-3 align-items-end" onSubmit={submit}>
             <div className="col-12 col-md-3">
               <label className="form-label">Nombre</label>
@@ -276,7 +342,7 @@ export default function MenuManager() {
             </div>
 
             <div className="col-12 col-md-3">
-              <label className="form-label">Descripción</label>
+              <label className="form-label">Descripcion</label>
               <input
                 className="form-control"
                 name="description"
@@ -338,7 +404,7 @@ export default function MenuManager() {
                   className="btn btn-outline-secondary"
                   onClick={resetForm}
                 >
-                  Cancelar edición
+                  Cancelar edicion
                 </button>
               )}
             </div>
@@ -346,7 +412,6 @@ export default function MenuManager() {
         </div>
       </div>
 
-      {/* TABLA DE PLATOS */}
       <div className="card shadow-sm">
         <div className="card-body">
           <h3 className="h6 mb-3">Platos existentes</h3>
@@ -375,32 +440,24 @@ export default function MenuManager() {
                       <td>
                         <div className="fw-semibold">{item.name}</div>
                         {item.description && (
-                          <div className="small text-muted">
-                            {item.description}
-                          </div>
+                          <div className="small text-muted">{item.description}</div>
                         )}
                       </td>
                       <td>${Number(item.price).toFixed(2)}</td>
                       <td>
                         <div className="d-flex align-items-center gap-2">
-                          <span className="badge bg-primary">
-                            {item.stock ?? 0}
-                          </span>
+                          <span className="badge bg-primary">{item.stock ?? 0}</span>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-success"
-                            onClick={() =>
-                              updateStock(item.id, (item.stock || 0) + 1)
-                            }
+                            onClick={() => updateStock(item.id, (item.stock || 0) + 1)}
                           >
                             +1
                           </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger"
-                            onClick={() =>
-                              updateStock(item.id, (item.stock || 0) - 1)
-                            }
+                            onClick={() => updateStock(item.id, (item.stock || 0) - 1)}
                           >
                             -1
                           </button>
@@ -410,9 +467,7 @@ export default function MenuManager() {
                         {item.is_active ? (
                           <span className="badge bg-success">Activo</span>
                         ) : (
-                          <span className="badge bg-secondary">
-                            Inactivo
-                          </span>
+                          <span className="badge bg-secondary">Inactivo</span>
                         )}
                       </td>
                       <td className="text-end">

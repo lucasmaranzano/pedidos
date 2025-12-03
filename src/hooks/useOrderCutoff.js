@@ -1,28 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const LIMIT_HOUR = 11;
-const LIMIT_MIN = 30;
+const DEFAULT_CUTOFF = { hour: 11, minute: 30 };
 
-function isBeforeCutoff(date = new Date()) {
+function isBeforeCutoff(cutoff, date = new Date()) {
   const h = date.getHours();
   const m = date.getMinutes();
+  const limitH = Number(cutoff?.hour ?? DEFAULT_CUTOFF.hour);
+  const limitM = Number(cutoff?.minute ?? DEFAULT_CUTOFF.minute);
 
-  if (h < LIMIT_HOUR) return true;
-  if (h > LIMIT_HOUR) return false;
-
-  return m < LIMIT_MIN;
+  if (h < limitH) return true;
+  if (h > limitH) return false;
+  return m < limitM;
 }
 
-export function useOrderCutoff() {
-  const [open, setOpen] = useState(isBeforeCutoff());
+export function useOrderCutoff(cutoffFromSettings) {
+  const cutoff = useMemo(
+    () => ({
+      hour: cutoffFromSettings?.hour ?? DEFAULT_CUTOFF.hour,
+      minute: cutoffFromSettings?.minute ?? DEFAULT_CUTOFF.minute,
+    }),
+    [cutoffFromSettings]
+  );
+
+  const [open, setOpen] = useState(() => isBeforeCutoff(cutoff));
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setOpen(isBeforeCutoff());
-    }, 30000);
-
+    const update = () => setOpen(isBeforeCutoff(cutoff));
+    update();
+    const timer = setInterval(update, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [cutoff]);
 
-  return true;
+  return { isOpen: open, cutoff };
 }

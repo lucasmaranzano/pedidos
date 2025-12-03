@@ -10,9 +10,10 @@ export default function PublicMenu() {
   const [loadingMenu, setLoadingMenu] = useState(true);
 
   const [menuOpen, setMenuOpen] = useState(true);
+  const [cutoff, setCutoff] = useState({ hour: 11, minute: 30 });
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  const isOpenByHour = useOrderCutoff();
+  const { isOpen: isOpenByHour, cutoff: cutoffValue } = useOrderCutoff(cutoff);
 
   const loadMenu = useCallback(async () => {
     setLoadingMenu(true);
@@ -35,15 +36,20 @@ export default function PublicMenu() {
     setLoadingSettings(true);
     const { data, error } = await supabase
       .from("app_settings")
-      .select("id, menu_open")
+      .select("id, menu_open, order_cutoff_hour, order_cutoff_minute")
       .eq("id", 1)
       .single();
 
     if (error) {
       console.error("Error cargando app_settings:", error.message);
       setMenuOpen(true);
+      setCutoff({ hour: 11, minute: 30 });
     } else if (data) {
       setMenuOpen(data.menu_open);
+      setCutoff({
+        hour: data.order_cutoff_hour ?? 11,
+        minute: data.order_cutoff_minute ?? 30,
+      });
     }
     setLoadingSettings(false);
   }, []);
@@ -63,6 +69,9 @@ export default function PublicMenu() {
 
   const globalLoading = loadingMenu || loadingSettings;
   const showMenuToClient = menuOpen;
+  const cutoffLabel = `${String(cutoffValue.hour).padStart(2, "0")}:${String(
+    cutoffValue.minute
+  ).padStart(2, "0")}`;
 
   return (
     <div className="d-flex flex-column gap-3">
@@ -135,7 +144,7 @@ export default function PublicMenu() {
               {!isOpenByHour && (
                 <div className="alert alert-warning">
                   El horario de toma de pedidos es hasta las{" "}
-                  <strong>11:30</strong>. El formulario esta cerrado.
+                  <strong>{cutoffLabel}</strong>. El formulario esta cerrado.
                 </div>
               )}
 
