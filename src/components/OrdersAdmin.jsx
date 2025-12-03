@@ -146,7 +146,8 @@ Recordá tener el dinero justo al recibir tu pedido 🙏
 ¡Gracias por elegirnos! ❤️
 Que tengas un hermoso día ⭐`;
 
-      const url = `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+      const encodedText = encodeURIComponent(text);
+      const url = `https://wa.me/${phone}?text=${encodedText}`;
       window.open(url, "_blank");
     }
 
