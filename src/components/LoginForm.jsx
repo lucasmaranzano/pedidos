@@ -29,59 +29,52 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="row justify-content-center">
-      <div className="col-12 col-md-6 col-lg-4">
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <h2 className="h5 mb-3">Login administrador</h2>
-
-            {msg && (
-              <div
-                className={`alert alert-${msg.type} alert-dismissible fade show`}
-              >
-                {msg.text}
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setMsg(null)}
-                ></button>
-              </div>
-            )}
-
-            <form onSubmit={submit} className="d-grid gap-3">
-              <div>
-                <label className="form-label">Email</label>
-                <input
-                  className="form-control"
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={change}
-                  required
-                />
-              </div>
-              <div>
-                <label className="form-label">ContraseÃ±a</label>
-                <input
-                  className="form-control"
-                  type="password"
-                  name="password"
-                  value={form.password}
-                  onChange={change}
-                  required
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? "Ingresando..." : "Ingresar"}
-              </button>
-            </form>
-          </div>
-        </div>
+    <form onSubmit={submit} className="login-form d-grid gap-3 mt-4">
+      <div className="d-grid gap-1">
+        <label className="form-label mb-0" htmlFor="login-email">
+          Email
+        </label>
+        <input
+          id="login-email"
+          className="form-control"
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={change}
+          required
+        />
       </div>
-    </div>
+      <div className="d-grid gap-1">
+        <label className="form-label mb-0" htmlFor="login-password">
+          Contraseña
+        </label>
+        <input
+          id="login-password"
+          className="form-control"
+          type="password"
+          name="password"
+          value={form.password}
+          onChange={change}
+          required
+        />
+      </div>
+
+      {msg && (
+        <div
+          className={`alert alert-${msg.type} alert-dismissible fade show mb-0`}
+        >
+          {msg.text}
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setMsg(null)}
+          ></button>
+        </div>
+      )}
+
+      <button className="btn btn-primary w-100" type="submit" disabled={loading}>
+        {loading ? "Ingresando..." : "Ingresar"}
+      </button>
+    </form>
   );
 }
