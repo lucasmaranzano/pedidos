@@ -19,6 +19,8 @@ export default function MenuManager() {
   const [settings, setSettings] = useState({
     id: 1,
     menuOpen: true,
+    startHour: 9,
+    startMinute: 0,
     cutoffHour: 11,
     cutoffMinute: 30,
     loading: true,
@@ -46,7 +48,9 @@ export default function MenuManager() {
     setSettings((prev) => ({ ...prev, loading: true }));
     const { data, error } = await supabase
       .from("app_settings")
-      .select("id, menu_open, order_cutoff_hour, order_cutoff_minute")
+      .select(
+        "id, menu_open, order_start_hour, order_start_minute, order_cutoff_hour, order_cutoff_minute"
+      )
       .eq("id", 1)
       .single();
 
@@ -60,6 +64,8 @@ export default function MenuManager() {
       setSettings({
         id: data.id,
         menuOpen: data.menu_open,
+        startHour: data.order_start_hour ?? 9,
+        startMinute: data.order_start_minute ?? 0,
         cutoffHour: data.order_cutoff_hour ?? 11,
         cutoffMinute: data.order_cutoff_minute ?? 30,
         loading: false,
@@ -222,20 +228,22 @@ export default function MenuManager() {
     }
   }
 
-  function handleCutoffChange(e) {
+  function handleWindowChange(field, e) {
     const [h, m] = e.target.value.split(":");
     setSettings((prev) => ({
       ...prev,
-      cutoffHour: Number(h) || 0,
-      cutoffMinute: Number(m) || 0,
+      [field === "start" ? "startHour" : "cutoffHour"]: Number(h) || 0,
+      [field === "start" ? "startMinute" : "cutoffMinute"]: Number(m) || 0,
     }));
   }
 
-  async function saveCutoff() {
+  async function saveWindow() {
     if (!settings.id) return;
 
     setSettings((prev) => ({ ...prev, saving: true }));
     const payload = {
+      order_start_hour: Number(settings.startHour) || 0,
+      order_start_minute: Number(settings.startMinute) || 0,
       order_cutoff_hour: Number(settings.cutoffHour) || 0,
       order_cutoff_minute: Number(settings.cutoffMinute) || 0,
     };
@@ -260,6 +268,9 @@ export default function MenuManager() {
     setSettings((prev) => ({ ...prev, saving: false }));
   }
 
+  const startValue = `${String(settings.startHour).padStart(2, "0")}:${String(
+    settings.startMinute
+  ).padStart(2, "0")}`;
   const cutoffValue = `${String(settings.cutoffHour).padStart(2, "0")}:${String(
     settings.cutoffMinute
   ).padStart(2, "0")}`;
@@ -304,6 +315,22 @@ export default function MenuManager() {
 
           <div className="mb-4 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-end">
             <div className="flex-grow-1">
+              <label className="form-label" htmlFor="startTime">
+                Apertura automatica de pedidos
+              </label>
+              <input
+                id="startTime"
+                type="time"
+                className="form-control"
+                value={startValue}
+                onChange={(e) => handleWindowChange("start", e)}
+                disabled={settings.loading || settings.saving}
+              />
+              <div className="form-text">
+                Antes de este horario el cliente ve un aviso de apertura.
+              </div>
+            </div>
+            <div className="flex-grow-1">
               <label className="form-label" htmlFor="cutoffTime">
                 Horario limite para tomar pedidos
               </label>
@@ -312,7 +339,7 @@ export default function MenuManager() {
                 type="time"
                 className="form-control"
                 value={cutoffValue}
-                onChange={handleCutoffChange}
+                onChange={(e) => handleWindowChange("cutoff", e)}
                 disabled={settings.loading || settings.saving}
               />
               <div className="form-text">
@@ -323,7 +350,7 @@ export default function MenuManager() {
               type="button"
               className="btn btn-outline-primary"
               disabled={settings.loading || settings.saving}
-              onClick={saveCutoff}
+              onClick={saveWindow}
             >
               {settings.saving ? "Guardando..." : "Guardar horario"}
             </button>

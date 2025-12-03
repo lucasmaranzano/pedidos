@@ -1,35 +1,54 @@
 import { useEffect, useMemo, useState } from "react";
 
-const DEFAULT_CUTOFF = { hour: 11, minute: 30 };
+const DEFAULT_WINDOW = {
+  start: { hour: 9, minute: 0 },
+  cutoff: { hour: 11, minute: 30 },
+};
 
-function isBeforeCutoff(cutoff, date = new Date()) {
-  const h = date.getHours();
-  const m = date.getMinutes();
-  const limitH = Number(cutoff?.hour ?? DEFAULT_CUTOFF.hour);
-  const limitM = Number(cutoff?.minute ?? DEFAULT_CUTOFF.minute);
-
-  if (h < limitH) return true;
-  if (h > limitH) return false;
-  return m < limitM;
+function toMinutes({ hour, minute }) {
+  const h = Number(hour ?? 0);
+  const m = Number(minute ?? 0);
+  return h * 60 + m;
 }
 
-export function useOrderCutoff(cutoffFromSettings) {
-  const cutoff = useMemo(
-    () => ({
-      hour: cutoffFromSettings?.hour ?? DEFAULT_CUTOFF.hour,
-      minute: cutoffFromSettings?.minute ?? DEFAULT_CUTOFF.minute,
-    }),
-    [cutoffFromSettings]
-  );
+function getState(windowRange, date = new Date()) {
+  const now = date.getHours() * 60 + date.getMinutes();
+  const startMin = toMinutes(windowRange.start);
+  const endMin = toMinutes(windowRange.cutoff);
 
-  const [open, setOpen] = useState(() => isBeforeCutoff(cutoff));
+  if (now < startMin) return "before";
+  if (now >= endMin) return "after";
+  return "open";
+}
+
+export function useOrderCutoff(windowFromSettings) {
+  const windowRange = useMemo(() => {
+    return {
+      start: {
+        hour: windowFromSettings?.start?.hour ?? DEFAULT_WINDOW.start.hour,
+        minute: windowFromSettings?.start?.minute ?? DEFAULT_WINDOW.start.minute,
+      },
+      cutoff: {
+        hour: windowFromSettings?.cutoff?.hour ?? DEFAULT_WINDOW.cutoff.hour,
+        minute:
+          windowFromSettings?.cutoff?.minute ?? DEFAULT_WINDOW.cutoff.minute,
+      },
+    };
+  }, [windowFromSettings]);
+
+  const [state, setState] = useState(() => getState(windowRange));
 
   useEffect(() => {
-    const update = () => setOpen(isBeforeCutoff(cutoff));
+    const update = () => setState(getState(windowRange));
     update();
     const timer = setInterval(update, 30000);
     return () => clearInterval(timer);
-  }, [cutoff]);
+  }, [windowRange]);
 
-  return { isOpen: open, cutoff };
+  return {
+    isOpen: state === "open",
+    state, // "before" | "open" | "after"
+    start: windowRange.start,
+    cutoff: windowRange.cutoff,
+  };
 }

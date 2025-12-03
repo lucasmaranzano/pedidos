@@ -10,10 +10,18 @@ export default function PublicMenu() {
   const [loadingMenu, setLoadingMenu] = useState(true);
 
   const [menuOpen, setMenuOpen] = useState(true);
-  const [cutoff, setCutoff] = useState({ hour: 11, minute: 30 });
+  const [orderWindow, setOrderWindow] = useState({
+    start: { hour: 9, minute: 0 },
+    cutoff: { hour: 11, minute: 30 },
+  });
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  const { isOpen: isOpenByHour, cutoff: cutoffValue } = useOrderCutoff(cutoff);
+  const {
+    isOpen: isWithinWindow,
+    state: windowState,
+    start: startValue,
+    cutoff: cutoffValue,
+  } = useOrderCutoff(orderWindow);
 
   const loadMenu = useCallback(async () => {
     setLoadingMenu(true);
@@ -36,19 +44,30 @@ export default function PublicMenu() {
     setLoadingSettings(true);
     const { data, error } = await supabase
       .from("app_settings")
-      .select("id, menu_open, order_cutoff_hour, order_cutoff_minute")
+      .select(
+        "id, menu_open, order_cutoff_hour, order_cutoff_minute, order_start_hour, order_start_minute"
+      )
       .eq("id", 1)
       .single();
 
     if (error) {
       console.error("Error cargando app_settings:", error.message);
       setMenuOpen(true);
-      setCutoff({ hour: 11, minute: 30 });
+      setOrderWindow({
+        start: { hour: 9, minute: 0 },
+        cutoff: { hour: 11, minute: 30 },
+      });
     } else if (data) {
       setMenuOpen(data.menu_open);
-      setCutoff({
-        hour: data.order_cutoff_hour ?? 11,
-        minute: data.order_cutoff_minute ?? 30,
+      setOrderWindow({
+        start: {
+          hour: data.order_start_hour ?? 9,
+          minute: data.order_start_minute ?? 0,
+        },
+        cutoff: {
+          hour: data.order_cutoff_hour ?? 11,
+          minute: data.order_cutoff_minute ?? 30,
+        },
       });
     }
     setLoadingSettings(false);
@@ -69,8 +88,12 @@ export default function PublicMenu() {
 
   const globalLoading = loadingMenu || loadingSettings;
   const showMenuToClient = menuOpen;
+  const canOrder = showMenuToClient && isWithinWindow;
   const cutoffLabel = `${String(cutoffValue.hour).padStart(2, "0")}:${String(
     cutoffValue.minute
+  ).padStart(2, "0")}`;
+  const startLabel = `${String(startValue.hour).padStart(2, "0")}:${String(
+    startValue.minute
   ).padStart(2, "0")}`;
 
   return (
@@ -78,7 +101,7 @@ export default function PublicMenu() {
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div className="section-title mb-0">Menu del dia</div>
         <span className="tag">
-          {visibleMenu.length} opciones â€¢ {isOpenByHour ? "Abierto" : "Cerrado"}
+          {visibleMenu.length} opciones · {canOrder ? "Abierto" : "Cerrado"}
         </span>
       </div>
 
@@ -141,14 +164,27 @@ export default function PublicMenu() {
             <div className="card-body">
               <h2 className="h5 mb-3">Hacer un pedido</h2>
 
-              {!isOpenByHour && (
-                <div className="alert alert-warning">
-                  El horario de toma de pedidos es hasta las{" "}
+              {windowState === "before" && (
+                <div className="alert alert-info mb-3">
+                  Los pedidos abren a las <strong>{startLabel}</strong>.
+                </div>
+              )}
+
+              {windowState === "after" && (
+                <div className="alert alert-warning mb-3">
+                  El horario de toma de pedidos es de {startLabel} a
+                  {" "}
                   <strong>{cutoffLabel}</strong>. El formulario esta cerrado.
                 </div>
               )}
 
-              {isOpenByHour && <OrderForm menuItems={visibleMenu} />}
+              {windowState === "open" && !showMenuToClient && (
+                <div className="alert alert-info mb-3">
+                  El menu esta oculto por el admin. Intenta mas tarde.
+                </div>
+              )}
+
+              {canOrder && <OrderForm menuItems={visibleMenu} />}
             </div>
           </div>
         </div>
