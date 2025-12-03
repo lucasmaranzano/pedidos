@@ -6,7 +6,7 @@ function isValidArgPhone(phone) {
   return digits.length >= 10 && digits.length <= 13;
 }
 
-export default function OrderForm({ menuItems }) {
+export default function OrderForm({ menuItems, onOrderSaved }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -28,7 +28,6 @@ export default function OrderForm({ menuItems }) {
   function handleChange(e) {
     const { name, value } = e.target;
 
-    // 🔢 Control fuerte de cantidad: 1 <= qty <= stock
     if (name === "quantity") {
       let qty = Number(value) || 1;
       if (qty < 1) qty = 1;
@@ -50,14 +49,14 @@ export default function OrderForm({ menuItems }) {
     setAlert(null);
 
     if (!form.menuItemId) {
-      setAlert({ type: "danger", text: "Seleccioná un plato." });
+      setAlert({ type: "danger", text: "Selecciona un plato." });
       return;
     }
 
     if (!form.firstName || !form.lastName || !form.phone) {
       setAlert({
         type: "danger",
-        text: "Completá nombre, apellido y teléfono.",
+        text: "Completa nombre, apellido y telefono.",
       });
       return;
     }
@@ -65,7 +64,7 @@ export default function OrderForm({ menuItems }) {
     if (!isValidArgPhone(form.phone)) {
       setAlert({
         type: "danger",
-        text: "Ingresá un teléfono válido de Argentina (solo números, con o sin código de área).",
+        text: "Ingresa un telefono valido de Argentina (solo numeros, con o sin codigo de area).",
       });
       return;
     }
@@ -73,12 +72,11 @@ export default function OrderForm({ menuItems }) {
     if (!selectedItem) {
       setAlert({
         type: "danger",
-        text: "El plato seleccionado ya no está disponible.",
+        text: "El plato seleccionado ya no esta disponible.",
       });
       return;
     }
 
-    // Chequeo rápido de UX: no permitir más que el stock actual en memoria
     if (
       typeof selectedItem.stock === "number" &&
       selectedItem.stock > 0 &&
@@ -99,7 +97,6 @@ export default function OrderForm({ menuItems }) {
     setAlert(null);
 
     try {
-      // 1) Traer stock más reciente desde Supabase (por si cambió mientras tanto)
       const { data: latestItem, error: fetchError } = await supabase
         .from("menu_items")
         .select("id, name, price, stock")
@@ -110,7 +107,7 @@ export default function OrderForm({ menuItems }) {
         console.error(fetchError);
         setAlert({
           type: "danger",
-          text: "No se pudo verificar el stock. Intentá de nuevo.",
+          text: "No se pudo verificar el stock. Intenta de nuevo.",
         });
         setSubmitting(false);
         setShowModal(false);
@@ -122,9 +119,7 @@ export default function OrderForm({ menuItems }) {
       if (!latestItem || latestItem.stock <= 0) {
         setAlert({
           type: "danger",
-          text: `El plato "${
-            latestItem?.name || "seleccionado"
-          }" ya no tiene stock disponible.`,
+          text: `El plato "${latestItem?.name || "seleccionado"}" ya no tiene stock disponible.`,
         });
         setSubmitting(false);
         setShowModal(false);
@@ -135,7 +130,7 @@ export default function OrderForm({ menuItems }) {
       if (latestItem.stock < qty) {
         setAlert({
           type: "danger",
-          text: `Solo quedan ${latestItem.stock} unidades de "${latestItem.name}". Ajustá la cantidad e intentá nuevamente.`,
+          text: `Solo quedan ${latestItem.stock} unidades de "${latestItem.name}". Ajusta la cantidad e intenta nuevamente.`,
         });
         setSubmitting(false);
         setShowModal(false);
@@ -143,7 +138,6 @@ export default function OrderForm({ menuItems }) {
         return;
       }
 
-      // 2) Insertar pedido
       const { error: orderError } = await supabase.from("orders").insert({
         customer_first_name: form.firstName,
         customer_last_name: form.lastName,
@@ -157,14 +151,13 @@ export default function OrderForm({ menuItems }) {
         console.error(orderError);
         setAlert({
           type: "danger",
-          text: "Ocurrió un error al enviar el pedido.",
+          text: "Ocurrio un error al enviar el pedido.",
         });
         setSubmitting(false);
         setShowModal(false);
         return;
       }
 
-      // 3) Descontar stock
       const newStock = latestItem.stock - qty;
 
       const { error: stockError } = await supabase
@@ -174,13 +167,25 @@ export default function OrderForm({ menuItems }) {
 
       if (stockError) {
         console.error(stockError);
-        // El pedido se generó, pero el stock no se actualizó: lo dejamos logueado.
       }
+
+      const total = Number(latestItem.price || 0) * qty;
 
       setAlert({
         type: "success",
-        text: "¡Pedido enviado correctamente!",
+        text: "Pedido enviado correctamente!",
       });
+
+      if (typeof onOrderSaved === "function") {
+        onOrderSaved({
+          id: Date.now(),
+          itemName: latestItem.name,
+          quantity: qty,
+          paymentMethod: form.paymentMethod,
+          total,
+          at: new Date().toISOString(),
+        });
+      }
 
       setForm({
         firstName: "",
@@ -242,7 +247,7 @@ export default function OrderForm({ menuItems }) {
         </div>
 
         <div className="col-12 col-md-6">
-          <label className="form-label">Teléfono</label>
+          <label className="form-label">Telefono</label>
           <input
             type="tel"
             name="phone"
@@ -263,11 +268,10 @@ export default function OrderForm({ menuItems }) {
             onChange={handleChange}
             required
           >
-            <option value="">Seleccioná un plato</option>
+            <option value="">Selecciona un plato</option>
             {menuItems.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} (${Number(item.price).toFixed(2)}) — Stock:{" "}
-                {item.stock}
+                {item.name} (${Number(item.price).toFixed(2)}) � Stock: {item.stock}
               </option>
             ))}
           </select>
@@ -278,10 +282,11 @@ export default function OrderForm({ menuItems }) {
           <input
             type="number"
             min="1"
-            // 👉 límite visual según stock
-            max={selectedItem && typeof selectedItem.stock === "number"
-              ? selectedItem.stock
-              : undefined}
+            max={
+              selectedItem && typeof selectedItem.stock === "number"
+                ? selectedItem.stock
+                : undefined
+            }
             name="quantity"
             className="form-control"
             value={form.quantity}
@@ -289,14 +294,12 @@ export default function OrderForm({ menuItems }) {
             required
           />
           {selectedItem && (
-            <div className="form-text">
-              Stock disponible: {selectedItem.stock}
-            </div>
+            <div className="form-text">Stock disponible: {selectedItem.stock}</div>
           )}
         </div>
 
         <div className="col-6 col-md-3">
-          <label className="form-label">Método de pago</label>
+          <label className="form-label">Metodo de pago</label>
           <select
             name="paymentMethod"
             className="form-select"
@@ -319,14 +322,9 @@ export default function OrderForm({ menuItems }) {
         </div>
       </form>
 
-      {/* Modal de confirmación */}
       {showModal && (
         <>
-          <div
-            className="modal fade show d-block"
-            tabIndex="-1"
-            role="dialog"
-          >
+          <div className="modal fade show d-block" tabIndex="-1" role="dialog">
             <div className="modal-dialog modal-dialog-centered" role="document">
               <div className="modal-content">
                 <div className="modal-header">
@@ -340,33 +338,24 @@ export default function OrderForm({ menuItems }) {
                 </div>
                 <div className="modal-body">
                   <p>
-                    <strong>Cliente:</strong> {form.firstName}{" "}
-                    {form.lastName}
+                    <strong>Cliente:</strong> {form.firstName} {form.lastName}
                   </p>
                   <p>
-                    <strong>Teléfono:</strong> {form.phone}
+                    <strong>Telefono:</strong> {form.phone}
                   </p>
                   <p>
-                    <strong>Plato:</strong>{" "}
-                    {selectedItem ? selectedItem.name : "—"}
+                    <strong>Plato:</strong> {selectedItem ? selectedItem.name : ""}
                   </p>
                   <p>
                     <strong>Cantidad:</strong> {form.quantity}
                   </p>
                   <p>
-                    <strong>Método de pago:</strong>{" "}
-                    {form.paymentMethod === "cash"
-                      ? "Efectivo"
-                      : "Transferencia"}
+                    <strong>Metodo de pago:</strong> {form.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
                   </p>
                   {selectedItem && (
                     <p>
-                      <strong>Total estimado:</strong>{" "}
-                      $
-                      {(
-                        Number(selectedItem.price || 0) *
-                        Number(form.quantity || 1)
-                      ).toFixed(2)}
+                      <strong>Total estimado:</strong> $
+                      {(Number(selectedItem.price || 0) * Number(form.quantity || 1)).toFixed(2)}
                     </p>
                   )}
                 </div>

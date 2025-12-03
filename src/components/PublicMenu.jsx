@@ -5,6 +5,35 @@ import { useRealtimeMenu } from "../hooks/useRealtimeMenu";
 import { useRealtimeSettings } from "../hooks/useRealtimeSettings";
 import OrderForm from "./OrderForm";
 
+const STORAGE_KEY = "lita-orders-history";
+
+function getTodayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function readOrdersToday() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    const today = getTodayKey();
+    return Array.isArray(parsed)
+      ? parsed.filter((o) => o.date === today)
+      : [];
+  } catch (e) {
+    console.error("No se pudo leer pedidos locales", e);
+    return [];
+  }
+}
+
+function writeOrdersToday(orders) {
+  if (typeof window === "undefined") return;
+  const today = getTodayKey();
+  const payload = orders.map((o) => ({ ...o, date: today }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
 export default function PublicMenu() {
   const [menu, setMenu] = useState([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
@@ -15,6 +44,7 @@ export default function PublicMenu() {
     cutoff: { hour: 11, minute: 30 },
   });
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [ordersToday, setOrdersToday] = useState([]);
 
   const {
     isOpen: isWithinWindow,
@@ -73,6 +103,10 @@ export default function PublicMenu() {
     setLoadingSettings(false);
   }, []);
 
+  const refreshLocalOrders = useCallback(() => {
+    setOrdersToday(readOrdersToday());
+  }, []);
+
   useEffect(() => {
     loadMenu();
   }, [loadMenu]);
@@ -80,6 +114,10 @@ export default function PublicMenu() {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    refreshLocalOrders();
+  }, [refreshLocalOrders]);
 
   useRealtimeMenu(loadMenu);
   useRealtimeSettings(loadSettings);
@@ -95,6 +133,13 @@ export default function PublicMenu() {
   const startLabel = `${String(startValue.hour).padStart(2, "0")}:${String(
     startValue.minute
   ).padStart(2, "0")}`;
+
+  function handleOrderSaved(order) {
+    const today = getTodayKey();
+    const next = [...readOrdersToday(), { ...order, date: today }];
+    writeOrdersToday(next);
+    setOrdersToday(next);
+  }
 
   return (
     <div className="d-flex flex-column gap-3">
@@ -184,7 +229,41 @@ export default function PublicMenu() {
                 </div>
               )}
 
-              {canOrder && <OrderForm menuItems={visibleMenu} />}
+              {canOrder && (
+                <OrderForm
+                  menuItems={visibleMenu}
+                  onOrderSaved={handleOrderSaved}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="card shadow-sm">
+            <div className="card-body">
+              <h2 className="h6 mb-3">Tus pedidos de hoy</h2>
+              {ordersToday.length === 0 && (
+                <p className="text-muted mb-0">Todavia no hiciste pedidos hoy.</p>
+              )}
+              {ordersToday.length > 0 && (
+                <div className="d-flex flex-column gap-2">
+                  {ordersToday.map((o) => (
+                    <div key={o.id} className="d-flex justify-content-between align-items-center border rounded px-3 py-2">
+                      <div>
+                        <div className="fw-semibold">{o.itemName}</div>
+                        <div className="small text-muted">
+                          Cantidad: {o.quantity} · Pago: {o.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <div className="fw-bold">${Number(o.total || 0).toFixed(2)}</div>
+                        <div className="small text-muted">
+                          {new Date(o.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
