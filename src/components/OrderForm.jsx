@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 
 function isValidArgPhone(phone) {
@@ -271,7 +271,7 @@ export default function OrderForm({ menuItems, onOrderSaved }) {
             <option value="">Selecciona un plato</option>
             {menuItems.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} (${Number(item.price).toFixed(2)}) � Stock: {item.stock}
+                {item.name} (${Number(item.price).toFixed(2)}) · Stock: {item.stock}
               </option>
             ))}
           </select>
@@ -386,3 +386,4 @@ export default function OrderForm({ menuItems, onOrderSaved }) {
     </>
   );
 }
+

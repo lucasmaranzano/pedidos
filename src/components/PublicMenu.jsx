@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+ï»¿import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useOrderCutoff } from "../hooks/useOrderCutoff";
 import { useRealtimeMenu } from "../hooks/useRealtimeMenu";
@@ -146,7 +146,7 @@ export default function PublicMenu() {
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div className="section-title mb-0">Menu del dia</div>
         <span className="tag">
-          {visibleMenu.length} opciones · {canOrder ? "Abierto" : "Cerrado"}
+          {visibleMenu.length} opciones - {canOrder ? "Abierto" : "Cerrado"}
         </span>
       </div>
 
@@ -251,7 +251,7 @@ export default function PublicMenu() {
                       <div>
                         <div className="fw-semibold">{o.itemName}</div>
                         <div className="small text-muted">
-                          Cantidad: {o.quantity} · Pago: {o.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
+                          Cantidad: {o.quantity} - Pago: {o.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
                         </div>
                       </div>
                       <div className="text-end">
@@ -271,3 +271,4 @@ export default function PublicMenu() {
     </div>
   );
 }
+
