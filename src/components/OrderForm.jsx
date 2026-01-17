@@ -324,11 +324,11 @@ export default function OrderForm({ menuItems, onOrderSaved }) {
 
       {showModal && (
         <>
-          <div className="modal fade show d-block" tabIndex="-1" role="dialog">
-            <div className="modal-dialog modal-dialog-centered" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Confirmar pedido</h5>
+          <div className="modal fade show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+            <div className="modal-dialog modal-dialog-centered animate-slide-up" role="document">
+              <div className="modal-content border-0 shadow-colored" style={{ borderRadius: 'var(--radius-lg)' }}>
+                <div className="modal-header border-0 pb-0">
+                  <h5 className="modal-title fw-bold">Confirmar pedido</h5>
                   <button
                     type="button"
                     className="btn-close"
@@ -337,32 +337,36 @@ export default function OrderForm({ menuItems, onOrderSaved }) {
                   ></button>
                 </div>
                 <div className="modal-body">
-                  <p>
-                    <strong>Cliente:</strong> {form.firstName} {form.lastName}
-                  </p>
-                  <p>
-                    <strong>Telefono:</strong> {form.phone}
-                  </p>
-                  <p>
-                    <strong>Plato:</strong> {selectedItem ? selectedItem.name : ""}
-                  </p>
-                  <p>
-                    <strong>Cantidad:</strong> {form.quantity}
-                  </p>
-                  <p>
-                    <strong>Metodo de pago:</strong> {form.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
-                  </p>
-                  {selectedItem && (
-                    <p>
-                      <strong>Total estimado:</strong> $
-                      {(Number(selectedItem.price || 0) * Number(form.quantity || 1)).toFixed(2)}
-                    </p>
-                  )}
+                  <div className="p-3 bg-light rounded-3 mb-3">
+                    <div className="d-flex justify-content-between mb-2">
+                      <span className="text-muted">Plato:</span>
+                      <span className="fw-semibold text-end">{selectedItem ? selectedItem.name : ""}</span>
+                    </div>
+                    <div className="d-flex justify-content-between mb-2">
+                      <span className="text-muted">Cantidad:</span>
+                      <span className="fw-semibold">{form.quantity}</span>
+                    </div>
+                    <div className="d-flex justify-content-between mb-2">
+                      <span className="text-muted">Total estimado:</span>
+                      <span className="fw-bold text-primary">
+                        ${(Number(selectedItem?.price || 0) * Number(form.quantity || 1)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="mb-1 text-muted small">Datos de contacto:</p>
+                  <div className="fw-semibold">
+                    {form.firstName} {form.lastName}
+                  </div>
+                  <div>{form.phone}</div>
+                  <div className="mt-2 text-muted small">
+                    Pago: {form.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
+                  </div>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer border-0 pt-0">
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-outline-secondary"
                     onClick={handleCancelModal}
                     disabled={submitting}
                   >
@@ -370,7 +374,7 @@ export default function OrderForm({ menuItems, onOrderSaved }) {
                   </button>
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className="btn btn-primary px-4"
                     onClick={handleConfirm}
                     disabled={submitting}
                   >
@@ -380,7 +384,6 @@ export default function OrderForm({ menuItems, onOrderSaved }) {
               </div>
             </div>
           </div>
-          <div className="modal-backdrop fade show"></div>
         </>
       )}
     </>

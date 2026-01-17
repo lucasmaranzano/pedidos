@@ -142,130 +142,142 @@ export default function PublicMenu() {
   }
 
   return (
-    <div className="d-flex flex-column gap-3">
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div className="section-title mb-0">Menu del dia</div>
+    <div className="d-flex flex-column gap-4">
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 animate-fade-in">
+        <div className="section-title mb-0">Menú del día</div>
         <span className="tag">
-          {visibleMenu.length} opciones - {canOrder ? "Abierto" : "Cerrado"}
+          {visibleMenu.length} opciones &bull; {canOrder ? "Abierto" : "Cerrado"}
         </span>
       </div>
 
       {globalLoading && (
-        <div className="alert alert-secondary mb-0">
-          Cargando informacion del menu...
+        <div className="d-flex justify-content-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
         </div>
       )}
 
       {!globalLoading && !showMenuToClient && (
-        <div className="alert alert-info text-center py-4 mb-0">
-          <h2 className="h5 mb-2">Menu en preparacion</h2>
-          <p className="mb-0">
-            Estamos organizando los platos del dia. Volve a intentar en unos
-            minutos.
+        <div className="card glass-card text-center py-5 px-3 animate-slide-up">
+          <h2 className="h5 mb-2 fw-bold">Menú en preparación</h2>
+          <p className="text-muted mb-0">
+            Estamos organizando los platos del día. Volvé a intentar en unos minutos.
           </p>
         </div>
       )}
 
       {!globalLoading && showMenuToClient && (
-        <div className="d-flex flex-column gap-3">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2 className="h5 mb-3">Menu del dia</h2>
+        <div className="d-flex flex-column gap-4">
+          <section>
+            {loadingMenu && <p className="text-muted">Cargando menú...</p>}
 
-              {loadingMenu && (
-                <p className="text-muted mb-0">Cargando menu...</p>
-              )}
+            {!loadingMenu && visibleMenu.length === 0 && (
+              <div className="alert alert-light border-0 shadow-sm">
+                Por el momento no hay platos disponibles.
+              </div>
+            )}
 
-              {!loadingMenu && visibleMenu.length === 0 && (
-                <p className="text-muted mb-0">
-                  Por el momento no hay platos disponibles.
-                </p>
-              )}
-
-              {!loadingMenu && visibleMenu.length > 0 && (
-                <div className="d-flex flex-column gap-2">
-                  {visibleMenu.map((item) => (
-                    <div key={item.id} className="menu-card">
-                      <div>
-                        <div className="fw-semibold">{item.name}</div>
-                        {item.description && (
-                          <div className="muted">{item.description}</div>
-                        )}
-                        <div className="small text-muted">
-                          Stock disponible: {item.stock}
-                        </div>
+            {!loadingMenu && visibleMenu.length > 0 && (
+              <div className="d-flex flex-column gap-3">
+                {visibleMenu.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="menu-card animate-slide-up"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="menu-card-content">
+                      <div className="d-flex justify-content-between align-items-start mb-1">
+                        <div className="fw-bold text-main">{item.name}</div>
                       </div>
-                      <div className="fw-bold">
-                        ${Number(item.price).toFixed(2)}
+                      <div className="text-muted small line-clamp-2">
+                        {item.description || "Sin descripción"}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2 className="h5 mb-3">Hacer un pedido</h2>
-
-              {windowState === "before" && (
-                <div className="alert alert-info mb-3">
-                  Los pedidos abren a las <strong>{startLabel}</strong>.
-                </div>
-              )}
-
-              {windowState === "after" && (
-                <div className="alert alert-warning mb-3">
-                  El horario de toma de pedidos es de {startLabel} a
-                  {" "}
-                  <strong>{cutoffLabel}</strong>. El formulario esta cerrado.
-                </div>
-              )}
-
-              {windowState === "open" && !showMenuToClient && (
-                <div className="alert alert-info mb-3">
-                  El menu esta oculto por el admin. Intenta mas tarde.
-                </div>
-              )}
-
-              {canOrder && (
-                <OrderForm
-                  menuItems={visibleMenu}
-                  onOrderSaved={handleOrderSaved}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2 className="h6 mb-3">Tus pedidos de hoy</h2>
-              {ordersToday.length === 0 && (
-                <p className="text-muted mb-0">Todavia no hiciste pedidos hoy.</p>
-              )}
-              {ordersToday.length > 0 && (
-                <div className="d-flex flex-column gap-2">
-                  {ordersToday.map((o) => (
-                    <div key={o.id} className="d-flex justify-content-between align-items-center border rounded px-3 py-2">
-                      <div>
-                        <div className="fw-semibold">{o.itemName}</div>
-                        <div className="small text-muted">
-                          Cantidad: {o.quantity} - Pago: {o.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
-                        </div>
-                      </div>
-                      <div className="text-end">
-                        <div className="fw-bold">${Number(o.total || 0).toFixed(2)}</div>
-                        <div className="small text-muted">
-                          {new Date(o.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
+                    <div className="menu-card-footer">
+                      <div className="d-flex flex-column align-items-end align-items-md-center">
+                        <span className="fw-bold text-primary fs-5">
+                          ${Number(item.price).toFixed(0)}
+                        </span>
+                        <span className="small text-muted" style={{ fontSize: '0.75rem' }}>
+                          {item.stock} unid.
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <div className="section-title h5 mb-4">Hacer un pedido</div>
+
+                {windowState === "before" && (
+                  <div className="alert alert-info border-0 bg-primary-soft text-primary mb-3">
+                    Los pedidos abren a las <strong>{startLabel}</strong>.
+                  </div>
+                )}
+
+                {windowState === "after" && (
+                  <div className="alert alert-warning border-0 mb-3">
+                    El horario de pedido finalizó a las <strong>{cutoffLabel}</strong>.
+                  </div>
+                )}
+
+                {windowState === "open" && !showMenuToClient && (
+                  <div className="alert alert-info border-0 mb-3">
+                    El menú está oculto por el momento.
+                  </div>
+                )}
+
+                {canOrder && (
+                  <OrderForm
+                    menuItems={visibleMenu}
+                    onOrderSaved={handleOrderSaved}
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          </section>
+
+          <section className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <h2 className="h6 mb-3 fw-bold ps-2 border-start border-4 border-primary">Tus pedidos de hoy</h2>
+
+                {ordersToday.length === 0 && (
+                  <div className="text-center py-4 text-muted bg-light rounded-3">
+                    No tenés pedidos hoy.
+                  </div>
+                )}
+
+                {ordersToday.length > 0 && (
+                  <div className="d-flex flex-column gap-2">
+                    {ordersToday.map((o) => (
+                      <div key={o.id} className="d-flex justify-content-between align-items-center bg-white border p-3 rounded-3 shadow-sm">
+                        <div>
+                          <div className="fw-semibold text-main">{o.itemName}</div>
+                          <div className="small text-muted">
+                            x{o.quantity} · {o.paymentMethod === "cash" ? "Efectivo" : "Transferencia"}
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          <div className="fw-bold text-primary">${Number(o.total || 0).toFixed(0)}</div>
+                          <div className="small text-muted" style={{ fontSize: '0.7rem' }}>
+                            {new Date(o.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         </div>
       )}
     </div>

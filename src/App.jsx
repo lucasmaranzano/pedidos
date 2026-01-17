@@ -9,27 +9,27 @@ import logo from "./logo.jpg";
 
 function ClientPage() {
   return (
-    <div className="app-shell bg-light d-flex flex-column">
+    <div className="app-shell animate-fade-in">
       {/* Header publico */}
-      <header className="border-bottom bg-transparent">
-        <div className="container layout-narrow py-3">
-          <div className="hero w-100">
+      <header className="py-4">
+        <div className="container layout-narrow">
+          <div className="hero">
             <img
               src={logo}
               alt="Lo de Lita"
-              style={{ height: 56, width: "auto" }}
+              style={{ height: 64, width: "auto" }}
               className="img-fluid"
             />
             <div>
-              <div className="fw-semibold">Hacé tu pedido del día</div>
-              <small>Rápido, simple y pensado para el celu.</small>
+              <div className="hero-title">Lo de Lita</div>
+              <div className="text-muted fw-normal">Hacé tu pedido del día. Rápido y simple.</div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="flex-grow-1">
-        <div className="container layout-narrow py-4">
+        <div className="container layout-narrow pb-5">
           <PublicMenu />
         </div>
       </main>
